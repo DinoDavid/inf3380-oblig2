@@ -1,12 +1,10 @@
 CC = gcc
 CFLAGS = -O2
 
-PROJ = serial_main
-OBJS = serial_main.o
+PROJ = oblig2
+OBJS = oblig2.o
 
-all : simple-jpeg $(PROJ)
-
-serial_main : $(OBJS)
+$(PROJ): $(OBJS)
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
 obj-clean:
