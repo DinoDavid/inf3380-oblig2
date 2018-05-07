@@ -27,11 +27,11 @@ void write_matrix_binaryformat (char* filename, double** matrix, int num_rows, i
   fclose (fp);
 }
 
-void matrix_mult(double** matrix_1, int *num_rows_a, int *num_cols_a, double** matrix_2, int *num_rows_b, int num_cols_b, double **matrix_c) {
+void matrix_mult(double** matrix_a, int num_rows_a, int num_cols_a, double** matrix_b, int num_rows_b, int num_cols_b, double **matrix_c) {
   for (int i = 0; i < num_rows_a; i++){
     for (int j = 0; j < num_cols_b; j++) {
       matrix_c[i][j] = 0;
-      for (int k = 0; k < num_col_a; k++) {
+      for (int k = 0; k < num_cols_a; k++) {
         matrix_c[i][j] += matrix_a[j][k] * matrix_b[k][j];
       }
     }
@@ -40,18 +40,19 @@ void matrix_mult(double** matrix_1, int *num_rows_a, int *num_cols_a, double** m
 
 int main(int argc, char *argv[]) {
     double **matrix_a, **matrix_b, **matrix_c;
-    int *num_rows_a, *num_cols_a, *num_rows_B, *num cols_b;
+    int *num_rows_a, *num_cols_a, *num_rows_b, *num_cols_b;
 
-    if (argc !== 2) {
+    if (argc ==! 2) {
       printf("2 arguments expected");
       exit (EXIT_FAILURE);
     }
 
-    read_matrix_binaryformat(argv[1]), matrix_a, num_rows_a, num_cols_a;
-    read_matrix_binaryformat(argv[2]), matrix_b, num_procs_b, num_cols_b;
+    read_matrix_binaryformat((argv[1]), matrix_a, num_rows_a, num_cols_a);
+    read_matrix_binaryformat((argv[2]), matrix_b, num_rows_b, num_cols_b);
+    *matrix_c = malloc((*num_rows_a)*(*num_cols_b)*sizeof(double*));
 
-    *matrix_c = malloc((*num_rows)*(*num_cols)*sizeof(double*));
-    //write_matrix_binaryformat(argv[3]);
+    matrix_mult(matrix_a, num_rows_a, num_cols_a, matrix_b, num_rows_a, num_cols_b, matrix_c);
+    write_matrix_binaryformat(argv[3], matrix_c, num_rows_a, num_cols_b);
 }
 
 /*
