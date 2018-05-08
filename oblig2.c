@@ -1,22 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <mpi.h>
 
 void read_matrix_binaryformat (char* filename, double*** matrix, int* num_rows, int* num_cols) {
-    int i;
-    FILE* fp = fopen (filename,"rb");
-    fread (num_rows, sizeof(int), 1, fp);
-    fread (num_cols, sizeof(int), 1, fp);
+  int i;
+  FILE* fp = fopen (filename,"rb");
+  fread (num_rows, sizeof(int), 1, fp);
+  fread (num_cols, sizeof(int), 1, fp);
 
-    /* storage allocation of the matrix */
-    *matrix = (double**)malloc((*num_rows)*sizeof(double*));
-    (*matrix)[0] = (double*)malloc((*num_rows)*(*num_cols)*sizeof(double));
-    for (i=1; i<(*num_rows); i++)
-      (*matrix)[i] = (*matrix)[i-1]+(*num_cols);
+  /* storage allocation of the matrix */
+  *matrix = (double**)malloc((*num_rows)*sizeof(double*));
+  (*matrix)[0] = (double*)malloc((*num_rows)*(*num_cols)*sizeof(double));
+  for (i=1; i<(*num_rows); i++)
+    (*matrix)[i] = (*matrix)[i-1]+(*num_cols);
 
-    /* read in the entire matrix */
-    fread ((*matrix)[0], sizeof(double), (*num_rows)*(*num_cols), fp);
-    fclose (fp);
+  /* read in the entire matrix */
+  fread ((*matrix)[0], sizeof(double), (*num_rows)*(*num_cols), fp);
+  fclose (fp);
 }
 
 void write_matrix_binaryformat (char* filename, double** matrix, int num_rows, int num_cols) {
@@ -27,32 +28,63 @@ void write_matrix_binaryformat (char* filename, double** matrix, int num_rows, i
   fclose (fp);
 }
 
-void matrix_mult(double** matrix_a, int num_rows_a, int num_cols_a, double** matrix_b, int num_rows_b, int num_cols_b, double **matrix_c) {
-  for (int i = 0; i < num_rows_a; i++){
-    for (int j = 0; j < num_cols_b; j++) {
+void matrix_mult(double** matrix_a, int rows_a, int cols_a, double** matrix_b, int cols_b, double **matrix_c) {
+  for (int i = 0; i < rows_a; i++){
+    for (int j = 0; j < cols_b; j++) {
       matrix_c[i][j] = 0;
-      for (int k = 0; k < num_cols_a; k++) {
+      for (int k = 0; k < cols_a; k++) {
         matrix_c[i][j] += matrix_a[j][k] * matrix_b[k][j];
       }
     }
   }
 }
 
+void matrix_dist(double** matrix_a, ) {
+
+}
+
 int main(int argc, char *argv[]) {
-    double **matrix_a, **matrix_b, **matrix_c;
-    int *num_rows_a, *num_cols_a, *num_rows_b, *num_cols_b;
+  double **matrix_a, **matrix_b, **matrix_c;
+  int rows_a, cols_a, rows_b, cols_b;
+  int my_m, my_n, my_rank, num_procs;
 
-    if (argc ==! 2) {
-      printf("2 arguments expected");
-      exit (EXIT_FAILURE);
+  if (argc != 4) {
+    printf("%s\n", "3 arguments expected");
+    MPI_Finalize();
+    exit (EXIT_FAILURE);
+  }
+
+  MPI_Init (&argc, &argv);
+  MPI_Comm_rank (MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size (MPI_COMM_WORLD, &num_procs);
+
+  if (my_rank == 0) {
+    read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
+    read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
+    matrix_c = malloc(rows_a*sizeof(double*));
+    matrix_c[0] = malloc(rows_a * cols_b * sizeof(double));
+    for (int i=1; i < rows_a; i++){
+      matrix_c[i] = (matrix_c)[i-1] + (cols_a);
     }
+  }
 
-    read_matrix_binaryformat((argv[1]), matrix_a, num_rows_a, num_cols_a);
-    read_matrix_binaryformat((argv[2]), matrix_b, num_rows_b, num_cols_b);
-    *matrix_c = malloc((*num_rows_a)*(*num_cols_b)*sizeof(double*));
+  read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
+  read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
+  matrix_c = malloc(rows_a*sizeof(double*));
+  matrix_c[0] = malloc(rows_a * cols_b * sizeof(double));
+  for (int i=1; i < rows_a; i++){
+    matrix_c[i] = (matrix_c)[i-1] + (cols_a);
+  }
 
-    matrix_mult(matrix_a, num_rows_a, num_cols_a, matrix_b, num_rows_a, num_cols_b, matrix_c);
-    write_matrix_binaryformat(argv[3], matrix_c, num_rows_a, num_cols_b);
+  matrix_dist();
+
+  matrix_mult(matrix_a, rows_a, cols_a, matrix_b, cols_b, matrix_c);
+  write_matrix_binaryformat(argv[3], matrix_c, rows_a, cols_b);
+
+  free(matrix_c);
+
+  MPI_Finalize ();
+  return 0;
 }
 
 /*
@@ -83,7 +115,7 @@ matrixfuncs.c
 matrix_dist.c
 
 inf main(){
-  int myrnakp
+  int myrank
   int my_rank, num_procs, my2drank, mycoords[2];
   MPI_Comm comm_2d, comm_col, comm_row;
   int m, int n, my_m, my_n;

@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O2 -Wall -Wextra
+CFLAGS = -O2 -Wall -Wextra -Wno-unused-result
 
 PROJ = oblig2
 OBJS = oblig2.o
