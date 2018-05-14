@@ -2,7 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <mpi.h>
+#include <omp.h>
 
+
+//matrix_io
 void read_matrix_binaryformat (char* filename, double*** matrix, int* num_rows, int* num_cols) {
   int i;
   FILE* fp = fopen (filename,"rb");
@@ -28,6 +31,27 @@ void write_matrix_binaryformat (char* filename, double** matrix, int num_rows, i
   fclose (fp);
 }
 
+void allocate_matrix(double** matrix, int num_rows, int num_cols) {
+  matrix_c = malloc(rows_a*sizeof(double*));
+  matrix_c[0] = malloc(rows_a * cols_b * sizeof(double));
+  for (int i=1; i < rows_a; i++){
+    matrix_c[i] = (matrix_c)[i-1] + (cols_a);
+  }
+}
+
+void matrix_dist(double** matrix_a, ) {
+
+}
+
+void gather_matrix() {
+
+}
+
+//matrix_io ends
+
+//Cannons algorithm and matrix matrix multiply
+
+/* This matrix performs a serial matrix-matrix multiplication c = a * b. */
 void matrix_mult(double** matrix_a, int rows_a, int cols_a, double** matrix_b, int cols_b, double **matrix_c) {
   for (int i = 0; i < rows_a; i++){
     for (int j = 0; j < cols_b; j++) {
@@ -39,26 +63,24 @@ void matrix_mult(double** matrix_a, int rows_a, int cols_a, double** matrix_b, i
   }
 }
 
-void allocate_matrix(double** matrix, int num_rows, int num_cols) {
-  matrix_c = malloc(rows_a*sizeof(double*));
-  matrix_c[0] = malloc(rows_a * cols_b * sizeof(double));
-  for (int i=1; i < rows_a; i++){
-    matrix_c[i] = (matrix_c)[i-1] + (cols_a);
-  }
-}
+/* Cannon's algorithm goes here. */
+void matrixc_cannon_mult(double** matrix_a, double** matrix_b, double** matrix_c, int rows_a, int cols_a, int cols_b, MPI_Comm comm_2d)
+{
 
-void matrix_dist(double** matrix_a, ) {
-  dims[0] = dims[1] = num_procs;
-  periods[0] = periods[1] = 1;
-  MPI_Cart_Create(MPI_COMM_WORLD, 2, dims, periods, 1, &comm_2d);
-
+    return;
 }
 
 int main(int argc, char *argv[]) {
   double **matrix_a, **matrix_b, **matrix_c;
   int rows_a, cols_a, rows_b, cols_b;
+
+  //mpi variables
   int m, n, my_m, my_n, my_rank, num_procs;
   int displs, sendcounts;
+
+  MPI_Init (&argc, &argv);
+  MPI_Comm_rank (MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size (MPI_COMM_WORLD, &num_procs);
 
   if (argc != 4) {
     printf("%s\n", "3 arguments expected");
@@ -66,9 +88,6 @@ int main(int argc, char *argv[]) {
     exit (EXIT_FAILURE);
   }
 
-  MPI_Init (&argc, &argv);
-  MPI_Comm_rank (MPI_COMM_WORLD, &my_rank);
-  MPI_Comm_size (MPI_COMM_WORLD, &num_procs);
 
   num_procs_sqrt = sqrt(num_procs);
   if (num_procs_sqrt * num_procs_sqrt != num_procs) {
@@ -80,9 +99,10 @@ int main(int argc, char *argv[]) {
     read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
   }
 
-  if (num_procs_sqrt * num_procs_sqrt != num_procs) {
+  dims[0] = dims[1] = num_procs;
+  periods[0] = periods[1] = 1;
+  MPI_Cart_Create(MPI_COMM_WORLD, 2, dims, periods, 1, &comm_2d);
 
-  }
 
   matrix_dist();
 
