@@ -4,7 +4,6 @@
 #include <mpi.h>
 #include <omp.h>
 
-
 //matrix_io
 void read_matrix_binaryformat (char* filename, double*** matrix, int* num_rows, int* num_cols) {
   int i;
@@ -74,7 +73,8 @@ int main(int argc, char *argv[]) {
   int rows_a, cols_a, rows_b, cols_b;
 
   //mpi variables
-  int m, n, my_m, my_n, my_rank, num_procs;
+  int m, n, my_m, my_n, my_rank, num_procs, num_procs_sqrt;
+  int dims[2], periods[2], my_coords[2];
   int displs, sendcounts;
   MPI_Comm comm_2d, comm_col, comm_row;
 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size (MPI_COMM_WORLD, &num_procs);
 
   if (argc != 4) {
-    if (myrank == 0) {
+    if (my_rank == 0) {
       printf("3 arguments expected.\n");
       MPI_Abort(MPI_COMM_WORLD, 0);
       exit (EXIT_FAILURE);
@@ -98,16 +98,23 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (my_rank == 0) {
-    read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
-    read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
-  }
-
-  dims[0] = dims[1] = num_procs;
+  dims[0] = dims[1] = num_procs_sqrt;
   periods[0] = periods[1] = 1;
 
 /* Create Cartesian communicator. */
   MPI_Cart_Create(MPI_COMM_WORLD, 2, dims, periods, 1, &comm_2d);
+
+  MPI_Comm_rank(comm_2d, &my_2drank);
+  MPI_Cart_coords(comm_2d, my_2drank, 2, my_coords);
+
+//deler comm_2d i rader og columner
+  MPI_Cart_sub(comm_2d, (int[]){0, 1}, &comm_rows);
+  MPI_Cart_sub(comm_2d, (int[]){1, 0}, &comm_cols);
+
+  if (my_rank == 0) {
+    read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
+    read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
+  }
 
   matrix_dist();
 
