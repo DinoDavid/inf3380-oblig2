@@ -76,7 +76,10 @@ int main(int argc, char *argv[]) {
   int m, n, my_m, my_n, my_rank, num_procs, num_procs_sqrt;
   int dims[2], periods[2], my_coords[2];
   int displs, sendcounts;
-  MPI_Comm comm_2d, comm_col, comm_row;
+  int uprank, downrank, leftrank, rightrank, coords[2];
+  int shiftsource, shiftdest;
+  int nlocal;
+  MPI_Comm comm_2d;
 
   MPI_Init (&argc, &argv);
   MPI_Comm_rank (MPI_COMM_WORLD, &my_rank);
@@ -107,9 +110,16 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(comm_2d, &my_2drank);
   MPI_Cart_coords(comm_2d, my_2drank, 2, my_coords);
 
+  MPI_Cart_shift(comm_2d, 0, -1, &rightrank, %leftrank);
+  MPI_Cart_shift(comm_2d, 1, -1, &downrank, %uprank);
+
+  nlocal = n/dims[0]; //mulige allerede gjort?
+
+  MPI_Cart_shift
+
 //deler comm_2d i rader og columner
-  MPI_Cart_sub(comm_2d, (int[]){0, 1}, &comm_rows);
-  MPI_Cart_sub(comm_2d, (int[]){1, 0}, &comm_cols);
+  MPI_Cart_sub(comm_2d, (int[]){0, -1}, &comm_rows);
+  MPI_Cart_sub(comm_2d, (int[]){1, -1}, &comm_cols);
 
   if (my_rank == 0) {
     read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
