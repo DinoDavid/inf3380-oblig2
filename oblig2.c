@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <mpi.h>
 #include <omp.h>
 
@@ -30,22 +31,27 @@ void write_matrix_binaryformat (char* filename, double** matrix, int num_rows, i
   fclose (fp);
 }
 
-void allocate_matrix(double** matrix, int num_rows, int num_cols) {
-  matrix_c = malloc(rows_a*sizeof(double*));
-  matrix_c[0] = malloc(rows_a * cols_b * sizeof(double));
+void allocate_matrix(double** matrix, int rows_a, int cols_b, int cols_a) {
+  matrix = malloc(rows_a*sizeof(double*));
+  matrix[0] = malloc(rows_a * cols_b * sizeof(double));
   for (int i=1; i < rows_a; i++){
-    matrix_c[i] = (matrix_c)[i-1] + (cols_a);
+    matrix[i] = (matrix)[i-1] + (cols_a);
   }
 }
 
+void deallocate_matrix(double*** matrix) {
+  free(matrix[0]);
+  free(matrix);
+}
+/*
 void matrix_dist(double** matrix_a, double** matrix_b, ) {
-  /* Buffers. */
+  // Buffers.
   double *senddata_columnwise, *senddata_rowwise;
 
-  /* Scatterv variables, step 1. */
+  // Scatterv variables, step 1.
   int *displs_y, *sendcounts_y, *everyones_m;
 
-  /* Scatterv variables, step 2. */
+  // Scatterv variables, step 2.
   int *displs_x, *sendcounts_x, *everyones_n;
   MPI_Datatype columntype, columntype_scatter, columntype_recv, columntype_recv_scatter;
 
@@ -62,10 +68,12 @@ void matrix_dist(double** matrix_a, double** matrix_b, ) {
       displs_y[i + 1] = displs_y[i] + sendcounts_y[i];
   }
 }
-
+*/
+/*
 void gather_matrix() {
 
 }
+*/
 //matrix_io ends
 
 //Cannons algorithm and matrix matrix multiply
@@ -82,7 +90,7 @@ void matrix_mult(double** matrix_a, int rows_a, int cols_a, double** matrix_b, i
   }
 }
 
-void cannonMultiply(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_a, double *matrix_b, double *matrix_c, MPI_Comm comm) {
+void canon_mult(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_a, double *matrix_b, double *matrix_c, MPI_Comm comm) {
     int num_procs, dims[2], periods[2];
     int myrank, my2drank, mycoords[2];
     int uprank, downrank, leftrank, rightrank;
@@ -120,7 +128,7 @@ void cannonMultiply(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_
 
 	/* Get into the main computation loop */
     for (int i = 0; i < dims[0]; i++) {
-        matrix_mult(matrix_a, rows_a, cols_a, matrix_b, cols_b, matrix_c);
+        matrix_mult(&matrix_a, my_rows_a, my_cols_a, &matrix_b, my_cols_b, &matrix_c);
 
 	    /* Shift matrix a left by one */
         MPI_Sendrecv_replace(matrix_a, my_rows_a*my_cols_a, MPI_DOUBLE, leftrank, 1, rightrank, 1, comm_2d, &status);
@@ -161,13 +169,15 @@ int main(int argc, char *argv[]) {
   if (my_rank == 0) {
     read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
     read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
+    allocate_matrix(matrix_c, rows_a, cols_b, cols_a);
     //matrix_dist();
+    //cannon_mult();
   }
   if (my_rank == 0) {
     write_matrix_binaryformat(argv[3], matrix_c, rows_a, cols_b);
   }
 
-  free(matrix_c);
+  deallocate_matrix(&matrix_c);
 
   MPI_Finalize ();
   return 0;
