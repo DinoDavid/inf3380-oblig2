@@ -38,8 +38,29 @@ void allocate_matrix(double** matrix, int num_rows, int num_cols) {
   }
 }
 
-void matrix_dist(double** matrix_a, ) {
+void matrix_dist(double** matrix_a, double** matrix_b, ) {
+  /* Buffers. */
+  double *senddata_columnwise, *senddata_rowwise;
 
+  /* Scatterv variables, step 1. */
+  int *displs_y, *sendcounts_y, *everyones_m;
+
+  /* Scatterv variables, step 2. */
+  int *displs_x, *sendcounts_x, *everyones_n;
+  MPI_Datatype columntype, columntype_scatter, columntype_recv, columntype_recv_scatter;
+
+
+  everyones_m = (int *) calloc(procs_per_dim, sizeof(int));
+  sendcounts_y = (int *)calloc(procs_per_dim, sizeof(int));
+  displs_y = (int *)calloc(procs_per_dim + 1, sizeof(int));
+
+
+  displs_y[0] = 0;
+  for (int i = 0; i < procs_per_dim; ++i)
+  {
+      sendcounts_y[i] = n * everyones_m[i];
+      displs_y[i + 1] = displs_y[i] + sendcounts_y[i];
+  }
 }
 
 void gather_matrix() {
@@ -62,8 +83,7 @@ void matrix_mult(double** matrix_a, int rows_a, int cols_a, double** matrix_b, i
 }
 
 void cannonMultiply(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_a, double *matrix_b, double *matrix_c, MPI_Comm comm) {
-    int i;
-    int npes, dims[2], periods[2];
+    int num_procs, dims[2], periods[2];
     int myrank, my2drank, mycoords[2];
     int uprank, downrank, leftrank, rightrank;
     int shiftsource, shiftdest;
@@ -99,7 +119,7 @@ void cannonMultiply(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_
     MPI_Sendrecv_replace(matrix_b, my_cols_a*my_cols_b, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, &status);
 
 	/* Get into the main computation loop */
-    for (i=0; i < dims[0]; i++) {
+    for (int i = 0; i < dims[0]; i++) {
         matrix_mult(matrix_a, rows_a, cols_a, matrix_b, cols_b, matrix_c);
 
 	    /* Shift matrix a left by one */
@@ -141,10 +161,11 @@ int main(int argc, char *argv[]) {
   if (my_rank == 0) {
     read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
     read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
+    //matrix_dist();
   }
-
-  matrix_mult(matrix_a, rows_a, cols_a, matrix_b, cols_b, matrix_c);
-  write_matrix_binaryformat(argv[3], matrix_c, rows_a, cols_b);
+  if (my_rank == 0) {
+    write_matrix_binaryformat(argv[3], matrix_c, rows_a, cols_b);
+  }
 
   free(matrix_c);
 

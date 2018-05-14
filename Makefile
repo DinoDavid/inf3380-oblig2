@@ -1,4 +1,4 @@
-CC = gcc
+CC = mpicc
 CFLAGS = -O2 -Wall -Wextra -Wno-unused-result
 
 PROJ = oblig2
