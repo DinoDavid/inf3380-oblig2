@@ -34,7 +34,7 @@ void write_matrix_binaryformat (char* filename, double** matrix, int num_rows, i
 void allocate_matrix(double** matrix, int rows_a, int cols_b, int cols_a) {
   matrix = malloc(rows_a*sizeof(double*));
   matrix[0] = malloc(rows_a * cols_b * sizeof(double));
-  for (int i=1; i < rows_a; i++){
+  for (int i = 1; i < rows_a; i++){
     matrix[i] = (matrix)[i-1] + (cols_a);
   }
 }
@@ -45,8 +45,8 @@ void deallocate_matrix(double*** matrix) {
 }
 */
 /*
-void matrix_dist(double** matrix_a, double** matrix_b, ) {
-  // Buffers.
+void matrix_dist(double** matrix_a, double** matrix_b, int num_procs_sqrt, int mycoords[2]) {
+  // Buffers
   double *senddata_columnwise, *senddata_rowwise;
 
   // Scatterv variables, step 1.
@@ -56,17 +56,80 @@ void matrix_dist(double** matrix_a, double** matrix_b, ) {
   int *displs_x, *sendcounts_x, *everyones_n;
   MPI_Datatype columntype, columntype_scatter, columntype_recv, columntype_recv_scatter;
 
+  displs_x = displs_y = sendcounts_x = sendcounts_y = everyones_m = everyones_n = NULL;
+  senddata_columnwise = senddata_rowwise = NULL;
 
-  everyones_m = (int *) calloc(procs_per_dim, sizeof(int));
-  sendcounts_y = (int *)calloc(procs_per_dim, sizeof(int));
-  displs_y = (int *)calloc(procs_per_dim + 1, sizeof(int));
-
-
-  displs_y[0] = 0;
-  for (int i = 0; i < procs_per_dim; ++i)
+  if (mycoords[0] == 0 && mycoords[1] == 0)
   {
-      sendcounts_y[i] = n * everyones_m[i];
-      displs_y[i + 1] = displs_y[i] + sendcounts_y[i];
+      senddata_columnwise = *whole_matrix;
+  }
+
+  if (mycoords[1] == 0) {
+    if (mycoords[0] == 0) {
+      everyones_m = (int *) calloc(num_procs_sqrt, sizeof(int));
+      sendcounts_y = (int *)calloc(num_procs_sqrt, sizeof(int));
+      displs_y = (int *)calloc(num_procs_sqrt + 1, sizeof(int));
+    }
+    MPI_Gather(&my_m, 1, MPI_INT, everyones_m, 1, MPI_INT, 0, *comm_col);
+    if (mycoords[0] == 0){
+      displs_y[0] = 0;
+      for (int i = 0; i < num_procs_sqrt; ++i) {
+        sendcounts_y[i] = n * everyones_m[i];
+        displs_y[i + 1] = displs_y[i] + sendcounts_y[i];
+      }
+    }
+    senddata_rowwise = (double *) calloc(my_m * n, sizeof(double));
+    MPI_Scatterv(senddata_columnwise, sendcounts_y, displs_y, MPI_DOUBLE, senddata_rowwise, my_m * n, MPI_DOUBLE, 0, *comm_col);
+  }
+    MPI_type_vector(my_rows_a, 1, n, MPI_DOUBLE, &columntype);
+    MPI_Type_commit(&columntype);
+    MPI_Type_create_resized(columntype, 0, sizeof(double), &columntype_scatter);
+    MPI_Type_commit(&columntype_scatter);
+
+    MPI_Type_vector(my_m, 1, my_n, MPI_DOUBLE, &columntype_recv);
+    MPI_Type_commit(&columntype_recv);
+    MPI_Type_create_resized(columntype_recv, 0, sizeof(double), &columntype_recv_scatter);
+    MPI_Type_commit(&columntype_recv_scatter);
+
+    if (mycoords[1] == 0)
+{
+    everyones_n = (int *) calloc(num_procs_sqrt_dim, sizeof(int));
+    sendcounts_x = (int *) calloc(num_procs_sqrt_dim, sizeof(int));
+    displs_x = (int *) calloc(num_procs_sqrt_dim + 1, sizeof(int));
+}
+
+  MPI_Gather(&my_n, 1, MPI_INT, everyones_n, 1, MPI_INT, 0, *comm_row);
+
+  if (mycoords[1] == 0)
+  {
+
+      displs_x[0] = 0;
+      for (int i = 0; i < num_procs_sqrt_dim; ++i)
+      {
+          sendcounts_x[i] = everyones_n[i];
+          displs_x[i + 1] = displs_x[i] + sendcounts_x[i];
+      }
+  }
+
+  MPI_Scatterv(senddata_rowwise, sendcounts_x, displs_x, columntype_scatter, *my_a, my_n, columntype_recv_scatter, 0, *comm_row);
+
+  MPI_Type_free(&columntype_recv_scatter);
+  MPI_Type_free(&columntype_recv);
+
+  if (mycoords[1] == 0)
+  {
+      free(displs_x);
+      free(sendcounts_x);
+      MPI_Type_free(&columntype_scatter);
+      MPI_Type_free(&columntype);
+
+      if (mycoords[0] == 0)
+      {
+          free(displs_y);
+          free(sendcounts_y);
+      }
+
+      free(senddata_rowwise);
   }
 }
 */
@@ -80,7 +143,7 @@ void gather_matrix() {
 //Cannons algorithm and matrix matrix multiply
 
 /* This matrix performs a serial matrix-matrix multiplication c = a * b. */
-void matrix_mult(double** matrix_a, int rows_a, int cols_a, double** matrix_b, int cols_b, double **matrix_c) {
+void matrix_mult(double** matrix_a, int rows_a, int cols_a, double** matrix_b, int cols_b, double** matrix_c) {
   for (int i = 0; i < rows_a; i++) {
     for (int j = 0; j < cols_b; j++) {
       matrix_c[i][j] = 0;
@@ -90,7 +153,7 @@ void matrix_mult(double** matrix_a, int rows_a, int cols_a, double** matrix_b, i
     }
   }
 }
-
+/*
 void cannon_mult(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_a, double *matrix_b, double *matrix_c, MPI_Comm comm) {
     int num_procs, dims[2], periods[2];
     int myrank, my2drank, mycoords[2];
@@ -99,52 +162,52 @@ void cannon_mult(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_a, 
     MPI_Status status;
     MPI_Comm comm_2d;
 
-	/* Get the communicator related information */
+	//Get the communicator related information
     MPI_Comm_size(comm, &num_procs);
     MPI_Comm_rank(comm, &myrank);
 
-	/* Set up the Cartesian topology */
+	//Set up the Cartesian topology
     dims[0] = dims[1] = sqrt(num_procs);
 
-	/* Set the periods for wraparound connections, 1 == true*/
+	//Set the periods for wraparound connections, 1 == true
     periods[0] = periods[1] = 1;
 
-	/* Create the Cartesian topology, with rank reordering */
+	//Create the Cartesian topology, with rank reordering
     MPI_Cart_create(comm, 2, dims, periods, 1, &comm_2d);
 
-	/* Get the rank and coordinates with respect to the new topology */
+	//Get the rank and coordinates with respect to the new topology
     MPI_Comm_rank(comm_2d, &my2drank);
     MPI_Cart_coords(comm_2d, my2drank, 2, mycoords);
 
-	/* Compute ranks of the up and left shifts */
+	//Compute ranks of the up and left shifts
     MPI_Cart_shift(comm_2d, 1, -1, &rightrank, &leftrank);
     MPI_Cart_shift(comm_2d, 0, -1, &downrank, &uprank);
 
-	/* Perform the initial matrix alignment. First for A and then for B */
+	//Perform the initial matrix alignment. First for A and then for B
     MPI_Cart_shift(comm_2d, 1, -mycoords[0], &shiftsource, &shiftdest);
     MPI_Sendrecv_replace(matrix_a, my_rows_a*my_cols_a, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, &status);
 
     MPI_Cart_shift(comm_2d, 0, -mycoords[1], &shiftsource, &shiftdest);
     MPI_Sendrecv_replace(matrix_b, my_cols_a*my_cols_b, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, &status);
 
-	/* Get into the main computation loop */
+	// Get into the main computation loop
     for (int i = 0; i < dims[0]; i++) {
         matrix_mult(&matrix_a, my_rows_a, my_cols_a, &matrix_b, my_cols_b, &matrix_c);
 
-	    /* Shift matrix a left by one */
+	    // Shift matrix a left by one
         MPI_Sendrecv_replace(matrix_a, my_rows_a*my_cols_a, MPI_DOUBLE, leftrank, 1, rightrank, 1, comm_2d, &status);
 
-	    /* Shift matrix b up by one */
+	    // Shift matrix b up by one
         MPI_Sendrecv_replace(matrix_b, my_cols_a*my_cols_b, MPI_DOUBLE, uprank, 1, downrank, 1, comm_2d, &status);
     }
-  /* Free up communicator */
+  // Free up communicator
     MPI_Comm_free(&comm_2d);
 }
+*/
 
 int main(int argc, char *argv[]) {
   double **matrix_a, **matrix_b, **matrix_c;
   int rows_a, cols_a, rows_b, cols_b;
-
 
   //mpi variables
   int my_rank, num_procs, num_procs_sqrt;
@@ -177,6 +240,7 @@ int main(int argc, char *argv[]) {
   }
   if (my_rank == 0) {
     //gather_matrix();
+    matrix_mult(matrix_a, rows_a, cols_a, matrix_b, cols_b, matrix_c);
     write_matrix_binaryformat(argv[3], matrix_c, rows_a, cols_b);
   }
 
