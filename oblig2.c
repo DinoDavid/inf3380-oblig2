@@ -46,7 +46,6 @@ void matrix_dist(double** matrix_a, ) {
 void gather_matrix() {
 
 }
-
 //matrix_io ends
 
 //Cannons algorithm and matrix matrix multiply
@@ -77,21 +76,26 @@ int main(int argc, char *argv[]) {
   //mpi variables
   int m, n, my_m, my_n, my_rank, num_procs;
   int displs, sendcounts;
+  MPI_Comm comm_2d, comm_col, comm_row;
 
   MPI_Init (&argc, &argv);
   MPI_Comm_rank (MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size (MPI_COMM_WORLD, &num_procs);
 
   if (argc != 4) {
-    printf("%s\n", "3 arguments expected");
-    MPI_Finalize();
-    exit (EXIT_FAILURE);
+    if (myrank == 0) {
+      printf("3 arguments expected.\n");
+      MPI_Abort(MPI_COMM_WORLD, 0);
+      exit (EXIT_FAILURE);
+    }
   }
-
 
   num_procs_sqrt = sqrt(num_procs);
   if (num_procs_sqrt * num_procs_sqrt != num_procs) {
-      printf("%s\n", "Antall processer er ikke av kvadratisk");
+    if (my_rank == 0) {
+      printf("Number of processes must be a square number.\n");
+      MPI_Abort(MPI_COMM_WORLD, 0);
+    }
   }
 
   if (my_rank == 0) {
@@ -101,8 +105,9 @@ int main(int argc, char *argv[]) {
 
   dims[0] = dims[1] = num_procs;
   periods[0] = periods[1] = 1;
-  MPI_Cart_Create(MPI_COMM_WORLD, 2, dims, periods, 1, &comm_2d);
 
+/* Create Cartesian communicator. */
+  MPI_Cart_Create(MPI_COMM_WORLD, 2, dims, periods, 1, &comm_2d);
 
   matrix_dist();
 
@@ -142,8 +147,7 @@ matrixfuncs.c
 
 matrix_dist.c
 
-inf main(){
-  int myrank
+int main(){
   int my_rank, num_procs, my2drank, mycoords[2];
   MPI_Comm comm_2d, comm_col, comm_row;
   int m, int n, my_m, my_n;
