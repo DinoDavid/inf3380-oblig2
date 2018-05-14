@@ -38,11 +38,12 @@ void allocate_matrix(double** matrix, int rows_a, int cols_b, int cols_a) {
     matrix[i] = (matrix)[i-1] + (cols_a);
   }
 }
-
+/*
 void deallocate_matrix(double*** matrix) {
   free(matrix[0]);
   free(matrix);
 }
+*/
 /*
 void matrix_dist(double** matrix_a, double** matrix_b, ) {
   // Buffers.
@@ -90,7 +91,7 @@ void matrix_mult(double** matrix_a, int rows_a, int cols_a, double** matrix_b, i
   }
 }
 
-void canon_mult(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_a, double *matrix_b, double *matrix_c, MPI_Comm comm) {
+void cannon_mult(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_a, double *matrix_b, double *matrix_c, MPI_Comm comm) {
     int num_procs, dims[2], periods[2];
     int myrank, my2drank, mycoords[2];
     int uprank, downrank, leftrank, rightrank;
@@ -144,6 +145,7 @@ int main(int argc, char *argv[]) {
   double **matrix_a, **matrix_b, **matrix_c;
   int rows_a, cols_a, rows_b, cols_b;
 
+
   //mpi variables
   int my_rank, num_procs, num_procs_sqrt;
 
@@ -174,10 +176,11 @@ int main(int argc, char *argv[]) {
     //cannon_mult();
   }
   if (my_rank == 0) {
+    //gather_matrix();
     write_matrix_binaryformat(argv[3], matrix_c, rows_a, cols_b);
   }
 
-  deallocate_matrix(&matrix_c);
+  //deallocate_matrix(&matrix_c);
 
   MPI_Finalize ();
   return 0;

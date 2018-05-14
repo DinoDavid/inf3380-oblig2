@@ -1,5 +1,6 @@
 CC = mpicc
-CFLAGS = -O2 -Wall -Wextra -Wno-unused-result
+CFLAGS = -O2 -Wall -Wextra -Wno-unused-result 
+LDFLAGS = -lm
 
 PROJ = oblig2
 OBJS = oblig2.o
