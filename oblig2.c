@@ -43,6 +43,7 @@ void deallocate_matrix(double* matrix) {
   free(matrix);
 }
 */
+/*
 void matrix_dist(double** matrix, int mpart, int displs, int sizes, int num_procs){
   if (rank == 0){
     memcpy(matrix, Mpart, sizeof());
@@ -55,6 +56,7 @@ void matrix_dist(double** matrix, int mpart, int displs, int sizes, int num_proc
 
   }
 }
+*/
 /*
 void matrix_dist(double** matrix_a, double** matrix_b, int num_procs_sqrt, int mycoords[2]) {
   // Buffers
@@ -219,10 +221,6 @@ int main(int argc, char *argv[]) {
   //variables
   double **matrix_a, **matrix_b, **matrix_c;
   int rows_a, cols_a, rows_b, cols_b, rows_c, cols_c;
-  int *sendcounts, *displs, *everyones_m;
-  double** matrix_data;
-  int Matrix_m;
-  int Matrix_n;
 
   //mpi variables
   int my_rank, num_procs, num_procs_sqrt;
@@ -250,13 +248,18 @@ int main(int argc, char *argv[]) {
   if (my_rank == 0) {
     read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
     read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
-    allocate_matrix(matrix_c, rows_a, cols_b);
+    allocate_matrix(&matrix_c, rows_a, cols_b);
     rows_c = rows_a;
     cols_c = cols_b;
     //matrix_dist();
     //cannon_mult();
   }
-
+  if (my_rank == 0)
+    write_matrix_binaryformat(argv[3], matrix_c, rows_c, cols_c);
+  MPI_Finalize();
+  return 0;
+}
+/*
   //Mpart calc
   Matrix_n = n/num_procs_sqrt;
   Matrix_m = m/num_procs_sqrt;
@@ -289,7 +292,7 @@ int main(int argc, char *argv[]) {
   MPI_Finalize ();
   return 0;
 }
-
+*/
 /*
 • let process 0 read the A and B matrices from the two data files,
 • let process 0 distribute the pieces of A and B, after a 2D partitioning,
