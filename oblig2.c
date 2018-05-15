@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
   //int m, n;
 
   //mpi variables
-  //int my_m, my_n;
+  int rows_apart, cols_apart, rows_bpart, cols_bpart, rows_cpart, cols_cpart;
   int my_rank, num_procs, num_procs_sqrt;
   int dims[2], periods[2];
   MPI_Comm comm_2d, comm_rows, comm_cols;
@@ -279,6 +279,14 @@ int main(int argc, char *argv[]) {
   MPI_Cart_sub(comm_2d, (int[]){0,1}, &comm_cols);
   MPI_Comm_rank(comm_rows, &rankrows);
   MPI_Comm_rank(comm_cols, &rankcols);
+
+  //find partion sizes
+  rows_apart = rows_a / num_procs_sqrt + (rankrows < rows_a % num_procs_sqrt);
+  cols_apart = cols_a / num_procs_sqrt + (rankcols < cols_a % num_procs_sqrt);
+  rows_bpart = rows_b / num_procs_sqrt + (rankrows < rows_b % num_procs_sqrt);
+  cols_bpart = cols_b / num_procs_sqrt + (rankcols < cols_b % num_procs_sqrt);
+  rows_cpart = rows_c / num_procs_sqrt + (rankrows < rows_c % num_procs_sqrt);
+  cols_cpart = cols_c / num_procs_sqrt + (rankcols < cols_c % num_procs_sqrt);
 
   //save result
   if (my_rank == 0){
