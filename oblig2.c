@@ -296,27 +296,12 @@ int main(int argc, char *argv[]) {
 
   //distribute partitions
   if (my_rank == 0) {
-    /*for (int i = 0; i < rows_apart; i++){
-      memcpy(&A_part[i], &matrix_a[i], cols_apart * sizeof(double));
+    for (int i = 0; i < rows_apart; i++){
+      memcpy(A_part[i], matrix_a[i], cols_apart * sizeof(double));
     }
     for (int i = 0; i < rows_bpart; i++){
-      memcpy(&B_part[i], &matrix_b[i], cols_bpart * sizeof(double));
-    }*/
-/*
-    for (int i = 0; i < rows_a; i++){
-      memset(&A_part[i], &matrix_a[i], cols_a * sizeof(double));
+      memcpy(B_part[i], matrix_b[i], cols_bpart * sizeof(double));
     }
-    for (int i = 0; i < rows_b; i++){
-      memset(&B_part[i], &matrix_b[i], cols_b * sizeof(double));
-    }
-
-    for (int i = 0; i < rows_a; i++){
-      memcpy(&matrix_a[i], &A_part[i], cols_a * sizeof(double));
-    }
-    for (int i = 0; i < rows_b; i++){
-      memcpy(&matrix_b[i], &B_part[i], cols_b * sizeof(double));
-    }
-*/
 
   }else{
 
