@@ -1,5 +1,5 @@
 CC = mpicc
-CFLAGS = -O2 -Wall -Wextra -Wno-unused-result 
+CFLAGS = -O2 -Wall -Wextra -Wno-unused-result
 LDFLAGS = -lm
 
 PROJ = oblig2
@@ -11,16 +11,14 @@ $(PROJ): $(OBJS)
 run:
 	./oblig2 small_matrix_a.bin small_matrix_b.bin c.bin
 
-obj-clean:
-	$(RM) *.o
+printer: printer.o
+	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
-exec-clean:
-	$(RM) $(PROJ)
+compare: compare.o
+	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
-autosave-clean:
-	$(RM) *~
+.c.o:
+	$(CC) $(CFLAGS) -c $<
 
 clean:
-	$(MAKE) obj-clean
-	$(MAKE) exec-clean
-	$(MAKE) autosave-clean
+	git clean -Xdf
