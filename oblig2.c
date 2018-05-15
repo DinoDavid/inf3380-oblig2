@@ -160,11 +160,12 @@ void matrix_mult(double** matrix_a, int rows_a, int cols_a, double** matrix_b, i
     for (int j = 0; j < cols_b; j++) {
       matrix_c[i][j] = 0;
       for (int k = 0; k < cols_a; k++) {
-        matrix_c[i][j] += matrix_a[j][k] * matrix_b[k][j];
+        matrix_c[i][j] += matrix_a[i][k] * matrix_b[k][j];
       }
     }
   }
 }
+
 /*
 void cannon_mult(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_a, double *matrix_b, double *matrix_c, MPI_Comm comm) {
     int num_procs, dims[2], periods[2];
@@ -290,6 +291,7 @@ int main(int argc, char *argv[]) {
 
   //save result
   if (my_rank == 0){
+    matrix_mult(matrix_a, rows_a, cols_a, matrix_b, cols_b, matrix_c);
     write_matrix_binaryformat(argv[3], matrix_c, rows_c, cols_c);
   }
 
