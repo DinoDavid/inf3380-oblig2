@@ -31,19 +31,30 @@ void write_matrix_binaryformat (char* filename, double** matrix, int num_rows, i
   fclose (fp);
 }
 
-void allocate_matrix(double** matrix, int rows_a, int cols_b, int cols_a) {
-  matrix = malloc(rows_a*sizeof(double*));
-  matrix[0] = malloc(rows_a * cols_b * sizeof(double));
-  for (int i = 1; i < rows_a; i++){
-    matrix[i] = (matrix)[i-1] + (cols_a);
+void allocate_matrix(double*** matrix, int m, int n) {
+  (*matrix) = malloc(m * sizeof(double*));
+  (*matrix)[0] = malloc(m * n * sizeof(double));
+  for (int i = 1; i < m; i++){
+    (*matrix)[i] = (*matrix)[i-1] + n;
   }
 }
 /*
-void deallocate_matrix(double*** matrix) {
-  free(matrix[0]);
+void deallocate_matrix(double* matrix) {
   free(matrix);
 }
 */
+void matrix_dist(double** matrix, int mpart, int displs, int sizes, int num_procs){
+  if (rank == 0){
+    memcpy(matrix, Mpart, sizeof());
+    for (int i = 0; i < num_procs - 1; i++) {
+      MPI_Send(i, M, displs, sizes);
+    }else {
+      MPI_Recv(Mpart)
+    }
+    for
+
+  }
+}
 /*
 void matrix_dist(double** matrix_a, double** matrix_b, int num_procs_sqrt, int mycoords[2]) {
   // Buffers
@@ -138,7 +149,6 @@ void gather_matrix() {
 
 }
 */
-//matrix_io ends
 
 //Cannons algorithm and matrix matrix multiply
 
@@ -206,22 +216,27 @@ void cannon_mult(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_a, 
 */
 
 int main(int argc, char *argv[]) {
+  //variables
   double **matrix_a, **matrix_b, **matrix_c;
-  int rows_a, cols_a, rows_b, cols_b;
+  int rows_a, cols_a, rows_b, cols_b, rows_c, cols_c;
+  int *sendcounts, *displs, *everyones_m;
+  double** matrix_data;
+  int Matrix_m;
+  int Matrix_n;
 
   //mpi variables
   int my_rank, num_procs, num_procs_sqrt;
 
+  //mpi begin
   MPI_Init (&argc, &argv);
   MPI_Comm_rank (MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size (MPI_COMM_WORLD, &num_procs);
 
+  //arguments check
   if (argc != 4) {
-    if (my_rank == 0) {
-      printf("3 arguments expected.\n");
-      MPI_Abort(MPI_COMM_WORLD, 0);
-      exit (EXIT_FAILURE);
-    }
+    printf("3 arguments expected.\n");
+    MPI_Abort(MPI_COMM_WORLD, 0);
+    exit (EXIT_FAILURE);
   }
 
   num_procs_sqrt = sqrt(num_procs);
@@ -231,16 +246,41 @@ int main(int argc, char *argv[]) {
       MPI_Abort(MPI_COMM_WORLD, 0);
     }
   }
+
   if (my_rank == 0) {
     read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
     read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
-    allocate_matrix(matrix_c, rows_a, cols_b, cols_a);
+    allocate_matrix(matrix_c, rows_a, cols_b);
+    rows_c = rows_a;
+    cols_c = cols_b;
     //matrix_dist();
     //cannon_mult();
   }
+
+  //Mpart calc
+  Matrix_n = n/num_procs_sqrt;
+  Matrix_m = m/num_procs_sqrt;
+  moffset = 34;
+  noffset = 34;
+  m_size = 33;
+  n_size = 16;
+  for (int i = 0; i < 33; i++) {
+    for (int j = 0; j < 16; j++) {
+      Mpart.data[i][j] = Mpart.data[i + moffset][j + noffset];
+    }
+  }
+
+  sizes = malloc(num_procs_sqrt * sizeof(int));
+  displs = malloc((num_procs_sqrt + 1) * sizeof(int));
+
+  displs[0] = 0;
+  for (int i = 0; i < num_procs_sqrt; i ++) {
+    sizes[p] = Matrix_m[i] * Matrix_n;
+    displs[i + 1] = displs[i] + sizes[i];
+
   if (my_rank == 0) {
     //gather_matrix();
-    matrix_mult(matrix_a, rows_a, cols_a, matrix_b, cols_b, matrix_c);
+    //test //matrix_mult(matrix_a, rows_a, cols_a, matrix_b, cols_b, matrix_c);
     write_matrix_binaryformat(argv[3], matrix_c, rows_a, cols_b);
   }
 
