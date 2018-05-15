@@ -227,7 +227,9 @@ int main(int argc, char *argv[]) {
   //int my_m, my_n;
   int my_rank, num_procs, num_procs_sqrt;
   int dims[2], periods[2];
-  MPI_Comm comm_2d;
+  MPI_Comm comm_2d, comm_rows, comm_cols;
+  int rank2d, rankrows, rankcols;
+  int mycoords[2];
 
   //mpi begin
   MPI_Init (&argc, &argv);
@@ -270,6 +272,13 @@ int main(int argc, char *argv[]) {
   periods[0] = periods[1] = 1;
 
   MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 0, &comm_2d);
+  MPI_Comm_rank(comm_2d, &rank2d);
+  MPI_Cart_coords(comm_2d, rank2d, 2, mycoords);
+
+  MPI_Cart_sub(comm_2d, (int[]){1,0}, &comm_rows);
+  MPI_Cart_sub(comm_2d, (int[]){0,1}, &comm_cols);
+  MPI_Comm_rank(comm_rows, &rankrows);
+  MPI_Comm_rank(comm_cols, &rankcols);
 
   //save result
   if (my_rank == 0){
