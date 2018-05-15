@@ -222,7 +222,7 @@ int main(int argc, char *argv[]) {
   //variables
   double **matrix_a, **matrix_b, **matrix_c;
   int rows_a, cols_a, rows_b, cols_b, rows_c, cols_c;
-  //int m, n;
+  double **A_part, **B_part, **C_part;
 
   //mpi variables
   int rows_apart, cols_apart, rows_bpart, cols_bpart, rows_cpart, cols_cpart;
@@ -288,6 +288,40 @@ int main(int argc, char *argv[]) {
   cols_bpart = cols_b / num_procs_sqrt + (rankcols < cols_b % num_procs_sqrt);
   rows_cpart = rows_c / num_procs_sqrt + (rankrows < rows_c % num_procs_sqrt);
   cols_cpart = cols_c / num_procs_sqrt + (rankcols < cols_c % num_procs_sqrt);
+
+  //allocate partitions
+  allocate_matrix(&A_part, rows_apart+1, cols_apart+1);
+  allocate_matrix(&B_part, rows_bpart+1, cols_bpart+1);
+  allocate_matrix(&C_part, rows_cpart+1, cols_cpart+1);
+
+  //distribute partitions
+  if (my_rank == 0) {
+    /*for (int i = 0; i < rows_apart; i++){
+      memcpy(&A_part[i], &matrix_a[i], cols_apart * sizeof(double));
+    }
+    for (int i = 0; i < rows_bpart; i++){
+      memcpy(&B_part[i], &matrix_b[i], cols_bpart * sizeof(double));
+    }*/
+/*
+    for (int i = 0; i < rows_a; i++){
+      memset(&A_part[i], &matrix_a[i], cols_a * sizeof(double));
+    }
+    for (int i = 0; i < rows_b; i++){
+      memset(&B_part[i], &matrix_b[i], cols_b * sizeof(double));
+    }
+
+    for (int i = 0; i < rows_a; i++){
+      memcpy(&matrix_a[i], &A_part[i], cols_a * sizeof(double));
+    }
+    for (int i = 0; i < rows_b; i++){
+      memcpy(&matrix_b[i], &B_part[i], cols_b * sizeof(double));
+    }
+*/
+
+  }else{
+
+  }
+
 
   //save result
   if (my_rank == 0){
