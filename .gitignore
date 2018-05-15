@@ -1,1 +1,5 @@
 c.bin
+*.o
+compare
+printer
+oblig2
