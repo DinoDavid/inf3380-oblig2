@@ -239,21 +239,21 @@ int main(int argc, char *argv[]) {
     exit (EXIT_FAILURE);
   }
 
+  //length of process mesh
   num_procs_sqrt = sqrt(num_procs);
   if (num_procs_sqrt * num_procs_sqrt != num_procs) {
-    if (my_rank == 0) {
-      printf("Number of processes must be a square number.\n");
-      MPI_Abort(MPI_COMM_WORLD, 0);
-    }
+    printf("Number of processes must be a square number.\n");
+    MPI_Abort(MPI_COMM_WORLD, 0);
   }
 
+  //read files and allocate a,b,c
   if (my_rank == 0) {
     read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
     read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
     allocate_matrix(&matrix_c, rows_a, cols_b);
-    //matrix_dist();
-    //cannon_mult();
   }
+
+  //m and n share
   rows_c = rows_a;
   cols_c = cols_b;
   MPI_Bcast (&rows_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -263,14 +263,15 @@ int main(int argc, char *argv[]) {
   MPI_Bcast (&rows_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast (&cols_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-  //printf("P%d: %d %d %d %d %d %d\n", my_rank, rows_a, cols_a, rows_b, cols_b, rows_c, cols_c);
+  //Create Cartesian topology
+  //MPI_Cart_create(comm)
 
-
+  //save result
   if (my_rank == 0){
     write_matrix_binaryformat(argv[3], matrix_c, rows_c, cols_c);
   }
-  printf("P%d: %d %d %d %d %d %d\n", my_rank, rows_a, cols_a, rows_b, cols_b, rows_c, cols_c);
 
+  //cleanup
   MPI_Finalize();
   return 0;
 }
