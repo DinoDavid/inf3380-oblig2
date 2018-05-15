@@ -221,8 +221,10 @@ int main(int argc, char *argv[]) {
   //variables
   double **matrix_a, **matrix_b, **matrix_c;
   int rows_a, cols_a, rows_b, cols_b, rows_c, cols_c;
+  //int m, n;
 
   //mpi variables
+  //int my_m, my_n;
   int my_rank, num_procs, num_procs_sqrt;
 
   //mpi begin
@@ -249,13 +251,26 @@ int main(int argc, char *argv[]) {
     read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
     read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
     allocate_matrix(&matrix_c, rows_a, cols_b);
-    rows_c = rows_a;
-    cols_c = cols_b;
     //matrix_dist();
     //cannon_mult();
   }
-  if (my_rank == 0)
+  rows_c = rows_a;
+  cols_c = cols_b;
+  MPI_Bcast (&rows_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast (&cols_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast (&rows_b, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast (&cols_b, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast (&rows_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast (&cols_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  //printf("P%d: %d %d %d %d %d %d\n", my_rank, rows_a, cols_a, rows_b, cols_b, rows_c, cols_c);
+
+
+  if (my_rank == 0){
     write_matrix_binaryformat(argv[3], matrix_c, rows_c, cols_c);
+  }
+  printf("P%d: %d %d %d %d %d %d\n", my_rank, rows_a, cols_a, rows_b, cols_b, rows_c, cols_c);
+
   MPI_Finalize();
   return 0;
 }
