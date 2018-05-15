@@ -226,6 +226,8 @@ int main(int argc, char *argv[]) {
   //mpi variables
   //int my_m, my_n;
   int my_rank, num_procs, num_procs_sqrt;
+  int dims[2], periods[2];
+  MPI_Comm comm_2d;
 
   //mpi begin
   MPI_Init (&argc, &argv);
@@ -264,7 +266,10 @@ int main(int argc, char *argv[]) {
   MPI_Bcast (&cols_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
   //Create Cartesian topology
-  //MPI_Cart_create(comm)
+  dims[0] = dims[1] = num_procs_sqrt;
+  periods[0] = periods[1] = 1;
+
+  MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 0, &comm_2d);
 
   //save result
   if (my_rank == 0){
