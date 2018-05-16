@@ -265,15 +265,11 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < rows_apart; i++){
       memcpy(matrix_a[i], A_part[i], cols_apart * sizeof(double));
     }
-    for (int i = 0; i < rows_bpart; i++){
-      memcpy(matrix_b[i], B_part[i], cols_bpart * sizeof(double));
-    }
+
     for (int i = 1; i < num_procs; i++) {
-      int Am, An, Bm, Bn;
+      int Am, An;
       MPI_Recv(&Am, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       MPI_Recv(&An, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      MPI_Recv(&Bm, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      MPI_Recv(&Bn, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
       int moff, noff;
       for (int j = 0; j < row_cnt_a[i / num_procs_sqrt]; j++) {
@@ -281,24 +277,13 @@ int main(int argc, char *argv[]) {
         noff = col_displ_a[i % num_procs_sqrt];
         MPI_Recv(&(matrix_a[j + moff][noff]), An, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
-      for (int j = 0; j <  row_cnt_b[i / num_procs_sqrt]; j++){
-        moff = row_displ_b[i / num_procs_sqrt];
-        noff = col_displ_b[i % num_procs_sqrt];
-        MPI_Recv(&(matrix_b[j + moff][noff]), Bn, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      }
     }
-  }else{
+  } else{
     MPI_Send(&rows_apart, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
     MPI_Send(&cols_apart, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-    MPI_Send(&rows_bpart, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-    MPI_Send(&cols_bpart, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
 
     for (int j = 0; j < rows_apart; j++){
       MPI_Send(A_part[j], cols_apart, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    }
-
-    for (int j = 0; j < rows_bpart; j++){
-      MPI_Send(B_part[j], cols_bpart, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     }
   }
 
@@ -306,7 +291,7 @@ int main(int argc, char *argv[]) {
   if (my_rank == 0){
     //cannon_mult(rows_a, cols_a, cols_b, matrix_a, matrix_b, matrix_c, MPI_COMM_WORLD);
     //matrix_mult(matrix_a, rows_a, cols_a, matrix_b, cols_b, matrix_c);
-    write_matrix_binaryformat(argv[3], matrix_a, rows_a, cols_a);
+    write_matrix_binaryformat(argv[3], matrix_c, rows_c, cols_c);
   }
 
   //cleanup
