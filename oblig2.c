@@ -39,7 +39,8 @@ void allocate_matrix(double*** matrix, int m, int n) {
   }
 }
 
-void deallocate_matrix(double* matrix) {
+void deallocate_matrix(double** matrix) {
+  free(matrix[0]);
   free(matrix);
 }
 
@@ -292,6 +293,22 @@ int main(int argc, char *argv[]) {
 
   // Free up communicator
   MPI_Comm_free(&comm_2d);
+  //deallocate_matrix(matrix_c);
+  //deallocate_matrix(A_part);
+  //deallocate_matrix(B_part);
+  //deallocate_matrix(C_part);
+  free(row_cnt_a);
+  free(row_cnt_b);
+  free(row_cnt_c);
+  free(col_cnt_a);
+  free(col_cnt_b);
+  free(col_cnt_c);
+  free(row_displ_a);
+  free(row_displ_b);
+  free(row_displ_c);
+  free(col_displ_a);
+  free(col_displ_b);
+  free(col_displ_c);
 
   //cleanup
   MPI_Finalize();
