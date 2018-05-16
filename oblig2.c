@@ -43,115 +43,12 @@ void deallocate_matrix(double* matrix) {
   free(matrix);
 }
 */
-/*
-void matrix_dist(double** matrix, int mpart, int displs, int sizes, int num_procs){
-  if (rank == 0){
-    memcpy(matrix, Mpart, sizeof());
-    for (int i = 0; i < num_procs - 1; i++) {
-      MPI_Send(i, M, displs, sizes);
-    }else {
-      MPI_Recv(Mpart)
-    }
-    for
 
-  }
-}
-*/
-/*
-void matrix_dist(double** matrix_a, double** matrix_b, int num_procs_sqrt, int mycoords[2]) {
-  // Buffers
-  double *senddata_columnwise, *senddata_rowwise;
-
-  // Scatterv variables, step 1.
-  int *displs_y, *sendcounts_y, *everyones_m;
-
-  // Scatterv variables, step 2.
-  int *displs_x, *sendcounts_x, *everyones_n;
-  MPI_Datatype columntype, columntype_scatter, columntype_recv, columntype_recv_scatter;
-
-  displs_x = displs_y = sendcounts_x = sendcounts_y = everyones_m = everyones_n = NULL;
-  senddata_columnwise = senddata_rowwise = NULL;
-
-  if (mycoords[0] == 0 && mycoords[1] == 0)
-  {
-      senddata_columnwise = *whole_matrix;
-  }
-
-  if (mycoords[1] == 0) {
-    if (mycoords[0] == 0) {
-      everyones_m = (int *) calloc(num_procs_sqrt, sizeof(int));
-      sendcounts_y = (int *)calloc(num_procs_sqrt, sizeof(int));
-      displs_y = (int *)calloc(num_procs_sqrt + 1, sizeof(int));
-    }
-    MPI_Gather(&my_m, 1, MPI_INT, everyones_m, 1, MPI_INT, 0, *comm_col);
-    if (mycoords[0] == 0){
-      displs_y[0] = 0;
-      for (int i = 0; i < num_procs_sqrt; ++i) {
-        sendcounts_y[i] = n * everyones_m[i];
-        displs_y[i + 1] = displs_y[i] + sendcounts_y[i];
-      }
-    }
-    senddata_rowwise = (double *) calloc(my_m * n, sizeof(double));
-    MPI_Scatterv(senddata_columnwise, sendcounts_y, displs_y, MPI_DOUBLE, senddata_rowwise, my_m * n, MPI_DOUBLE, 0, *comm_col);
-  }
-    MPI_type_vector(my_rows_a, 1, n, MPI_DOUBLE, &columntype);
-    MPI_Type_commit(&columntype);
-    MPI_Type_create_resized(columntype, 0, sizeof(double), &columntype_scatter);
-    MPI_Type_commit(&columntype_scatter);
-
-    MPI_Type_vector(my_m, 1, my_n, MPI_DOUBLE, &columntype_recv);
-    MPI_Type_commit(&columntype_recv);
-    MPI_Type_create_resized(columntype_recv, 0, sizeof(double), &columntype_recv_scatter);
-    MPI_Type_commit(&columntype_recv_scatter);
-
-    if (mycoords[1] == 0)
-{
-    everyones_n = (int *) calloc(num_procs_sqrt_dim, sizeof(int));
-    sendcounts_x = (int *) calloc(num_procs_sqrt_dim, sizeof(int));
-    displs_x = (int *) calloc(num_procs_sqrt_dim + 1, sizeof(int));
-}
-
-  MPI_Gather(&my_n, 1, MPI_INT, everyones_n, 1, MPI_INT, 0, *comm_row);
-
-  if (mycoords[1] == 0)
-  {
-
-      displs_x[0] = 0;
-      for (int i = 0; i < num_procs_sqrt_dim; ++i)
-      {
-          sendcounts_x[i] = everyones_n[i];
-          displs_x[i + 1] = displs_x[i] + sendcounts_x[i];
-      }
-  }
-
-  MPI_Scatterv(senddata_rowwise, sendcounts_x, displs_x, columntype_scatter, *my_a, my_n, columntype_recv_scatter, 0, *comm_row);
-
-  MPI_Type_free(&columntype_recv_scatter);
-  MPI_Type_free(&columntype_recv);
-
-  if (mycoords[1] == 0)
-  {
-      free(displs_x);
-      free(sendcounts_x);
-      MPI_Type_free(&columntype_scatter);
-      MPI_Type_free(&columntype);
-
-      if (mycoords[0] == 0)
-      {
-          free(displs_y);
-          free(sendcounts_y);
-      }
-
-      free(senddata_rowwise);
-  }
-}
-*/
 /*
 void gather_matrix() {
 
 }
 */
-
 //Cannons algorithm and matrix matrix multiply
 
 /* This matrix performs a serial matrix-matrix multiplication c = a * b. */
@@ -166,8 +63,7 @@ void matrix_mult(double** matrix_a, int rows_a, int cols_a, double** matrix_b, i
   }
 }
 
-/*
-void cannon_mult(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_a, double *matrix_b, double *matrix_c, MPI_Comm comm) {
+void cannon_mult(int rows_apart, int cols_apart, int cols_bpart, double **matrix_a, double **matrix_b, double **matrix_c, MPI_Comm comm) {
     int num_procs, dims[2], periods[2];
     int myrank, my2drank, mycoords[2];
     int uprank, downrank, leftrank, rightrank;
@@ -198,31 +94,34 @@ void cannon_mult(int my_rows_a, int my_cols_a, int my_cols_b, double *matrix_a, 
 
 	//Perform the initial matrix alignment. First for A and then for B
     MPI_Cart_shift(comm_2d, 1, -mycoords[0], &shiftsource, &shiftdest);
-    MPI_Sendrecv_replace(matrix_a, my_rows_a*my_cols_a, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, &status);
+    MPI_Sendrecv_replace(matrix_a, rows_apart * cols_apart, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, &status);
 
     MPI_Cart_shift(comm_2d, 0, -mycoords[1], &shiftsource, &shiftdest);
-    MPI_Sendrecv_replace(matrix_b, my_cols_a*my_cols_b, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, &status);
+    MPI_Sendrecv_replace(matrix_b, cols_apart * cols_bpart, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, &status);
 
 	// Get into the main computation loop
     for (int i = 0; i < dims[0]; i++) {
-        matrix_mult(&matrix_a, my_rows_a, my_cols_a, &matrix_b, my_cols_b, &matrix_c);
+        matrix_mult(matrix_a, rows_apart, cols_apart, matrix_b, cols_bpart, matrix_c);
 
 	    // Shift matrix a left by one
-        MPI_Sendrecv_replace(matrix_a, my_rows_a*my_cols_a, MPI_DOUBLE, leftrank, 1, rightrank, 1, comm_2d, &status);
+        MPI_Sendrecv_replace(matrix_a, rows_apart * cols_apart, MPI_DOUBLE, leftrank, 1, rightrank, 1, comm_2d, &status);
 
 	    // Shift matrix b up by one
-        MPI_Sendrecv_replace(matrix_b, my_cols_a*my_cols_b, MPI_DOUBLE, uprank, 1, downrank, 1, comm_2d, &status);
+        MPI_Sendrecv_replace(matrix_b, cols_apart * cols_bpart, MPI_DOUBLE, uprank, 1, downrank, 1, comm_2d, &status);
     }
   // Free up communicator
     MPI_Comm_free(&comm_2d);
 }
-*/
+
+
 
 int main(int argc, char *argv[]) {
   //variables
   double **matrix_a, **matrix_b, **matrix_c;
   int rows_a, cols_a, rows_b, cols_b, rows_c, cols_c;
   double **A_part, **B_part, **C_part;
+  int *row_cnt_a = 0, *row_cnt_b = 0, *col_cnt_a = 0, *col_cnt_b = 0;
+  int *row_displ_a = 0, *row_displ_b = 0, *col_displ_a = 0, *col_displ_b = 0;
 
   //mpi variables
   int rows_apart, cols_apart, rows_bpart, cols_bpart, rows_cpart, cols_cpart;
@@ -256,6 +155,31 @@ int main(int argc, char *argv[]) {
     read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
     read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
     allocate_matrix(&matrix_c, rows_a, cols_b);
+  }
+
+  //calculate displs
+  if (my_rank == 0){
+    row_cnt_a = malloc(num_procs_sqrt * sizeof(int));
+    row_cnt_b = malloc(num_procs_sqrt * sizeof(int));
+    col_cnt_a = malloc(num_procs_sqrt * sizeof(int));
+    col_cnt_b = malloc(num_procs_sqrt * sizeof(int));
+
+    row_displ_a = calloc((num_procs_sqrt + 1), sizeof(int));
+    row_displ_b = calloc((num_procs_sqrt + 1), sizeof(int));
+    col_displ_a = calloc((num_procs_sqrt + 1), sizeof(int));
+    col_displ_b = calloc((num_procs_sqrt + 1), sizeof(int));
+
+    for (int i = 0; i < num_procs_sqrt; i++){
+      row_cnt_a[i] = rows_a/num_procs_sqrt + (i < rows_a % num_procs_sqrt);
+      row_cnt_b[i] = rows_b/num_procs_sqrt + (i < rows_b % num_procs_sqrt);
+      col_cnt_a[i] = cols_a/num_procs_sqrt + (i < cols_a % num_procs_sqrt);
+      col_cnt_b[i] = cols_b/num_procs_sqrt + (i < cols_b % num_procs_sqrt);
+
+      row_displ_a[i+1] = row_displ_a[i] + row_cnt_a[i];
+      row_displ_b[i+1] = row_displ_b[i] + row_cnt_b[i];
+      col_displ_a[i+1] = col_displ_a[i] + col_cnt_a[i];
+      col_displ_a[i+1] = col_displ_a[i] + col_cnt_a[i];
+    }
   }
 
   //m and n share
@@ -302,14 +226,43 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < rows_bpart; i++){
       memcpy(B_part[i], matrix_b[i], cols_bpart * sizeof(double));
     }
+    for (int i = 1; i < num_procs; i++) {
+      int Am, An, Bm, Bn;
+      MPI_Recv(&Am, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&An, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&Bm, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&Bn, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+      int moff, noff;
+      for (int j = 0; j < row_cnt_a[i / num_procs_sqrt]; j++) {
+        moff = row_displ_a[i / num_procs_sqrt];
+        noff = col_displ_a[i % num_procs_sqrt];
+        MPI_Send(&(matrix_a[j + moff][noff]), An, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
+      }
+      for (int j = 0; j <  row_cnt_b[i / num_procs_sqrt]; j++){
+        moff = row_displ_b[i / num_procs_sqrt];
+        noff = col_displ_b[i % num_procs_sqrt];
+        MPI_Send(&(matrix_b[j + moff][noff]), Bn, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
+      }
+    }
   }else{
+    MPI_Send(&rows_apart, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    MPI_Send(&cols_apart, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    MPI_Send(&rows_bpart, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    MPI_Send(&cols_bpart, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
 
+    for (int j = 0; j < rows_apart; j++){
+      MPI_Recv(A_part[j], cols_apart, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    for (int j = 0; j < rows_bpart; j++){
+      MPI_Recv(B_part[j], cols_bpart, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
   }
-
 
   //save result
   if (my_rank == 0){
+    //cannon_mult(rows_a, cols_a, cols_b, matrix_a, matrix_b, matrix_c, MPI_COMM_WORLD);
     matrix_mult(matrix_a, rows_a, cols_a, matrix_b, cols_b, matrix_c);
     write_matrix_binaryformat(argv[3], matrix_c, rows_c, cols_c);
   }
@@ -318,40 +271,8 @@ int main(int argc, char *argv[]) {
   MPI_Finalize();
   return 0;
 }
-/*
-  //Mpart calc
-  Matrix_n = n/num_procs_sqrt;
-  Matrix_m = m/num_procs_sqrt;
-  moffset = 34;
-  noffset = 34;
-  m_size = 33;
-  n_size = 16;
-  for (int i = 0; i < 33; i++) {
-    for (int j = 0; j < 16; j++) {
-      Mpart.data[i][j] = Mpart.data[i + moffset][j + noffset];
-    }
-  }
 
-  sizes = malloc(num_procs_sqrt * sizeof(int));
-  displs = malloc((num_procs_sqrt + 1) * sizeof(int));
 
-  displs[0] = 0;
-  for (int i = 0; i < num_procs_sqrt; i ++) {
-    sizes[p] = Matrix_m[i] * Matrix_n;
-    displs[i + 1] = displs[i] + sizes[i];
-
-  if (my_rank == 0) {
-    //gather_matrix();
-    //test //matrix_mult(matrix_a, rows_a, cols_a, matrix_b, cols_b, matrix_c);
-    write_matrix_binaryformat(argv[3], matrix_c, rows_a, cols_b);
-  }
-
-  //deallocate_matrix(&matrix_c);
-
-  MPI_Finalize ();
-  return 0;
-}
-*/
 /*
 • let process 0 read the A and B matrices from the two data files,
 • let process 0 distribute the pieces of A and B, after a 2D partitioning,
@@ -360,19 +281,6 @@ to all the other processes,
 • let process 0 gather, from all the other processes, the different pieces
 of C,
 • let process 0 write out the entire C matrix to an output data file.
-
-
-MPI_Send(buff)
-
-Ikke bruke mpi scatter til å fordele
-
-
-kartesisk kommunikator
-
-
-MPI_COMM_WORLD
-
-MPI_CART...
 ______________________________________________________________
 
 matrixfuncs.c
