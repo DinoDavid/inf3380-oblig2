@@ -38,12 +38,12 @@ void allocate_matrix(double*** matrix, int m, int n) {
     (*matrix)[i] = (*matrix)[i-1] + n;
   }
 }
-
-void deallocate_matrix(double** matrix) {
+/*
+void deallocate_matrix(double*** matrix) {
   free(matrix[0]);
   free(matrix);
 }
-
+*/
 /*
 void matrix_0(double** matrix_c, int rows_a, int cols_b){
   for (int i = 0; i < rows_a; i++)
@@ -54,6 +54,7 @@ void matrix_0(double** matrix_c, int rows_a, int cols_b){
 
 /* This matrix performs a serial matrix-matrix multiplication c = a * b. */
 void matrix_mult(double** matrix_a, double** matrix_b, double** matrix_c, int rows_a, int cols_a, int cols_b) {
+#pragma omp parallel for num_threads(16)
   for (int i = 0; i < rows_a; i++) {
     for (int j = 0; j < cols_b; j++) {
       //matrix_c[i][j] = 0;
@@ -67,7 +68,7 @@ void matrix_mult(double** matrix_a, double** matrix_b, double** matrix_c, int ro
 int main(int argc, char *argv[]) {
   //variables
   double **matrix_a, **matrix_b, **matrix_c;
-  int rows_a, cols_a, rows_b, cols_b, rows_c, cols_c;
+  int rows_a = 0, cols_a = 0, rows_b = 0, cols_b = 0, rows_c = 0, cols_c = 0;
   double **A_part, **B_part, **C_part;
   int *row_cnt_a = 0, *row_cnt_b = 0, *row_cnt_c = 0, *col_cnt_a = 0, *col_cnt_b = 0, *col_cnt_c = 0;
   int *row_displ_a = 0, *row_displ_b = 0, *row_displ_c = 0, *col_displ_a = 0, *col_displ_b = 0, *col_displ_c = 0;
@@ -104,8 +105,8 @@ int main(int argc, char *argv[]) {
 
   //read files and allocate a,b,c
   if (my_rank == 0) {
-    read_matrix_binaryformat((argv[1]), &matrix_a, &rows_a, &cols_a);
-    read_matrix_binaryformat((argv[2]), &matrix_b, &rows_b, &cols_b);
+    read_matrix_binaryformat(argv[1], &matrix_a, &rows_a, &cols_a);
+    read_matrix_binaryformat(argv[2], &matrix_b, &rows_b, &cols_b);
     allocate_matrix(&matrix_c, rows_a, cols_b);
   }
 
@@ -186,6 +187,7 @@ int main(int argc, char *argv[]) {
 
   //distribute partitions
   if (my_rank == 0) {
+    #pragma omp parallel for num_threads(16)
     for (int i = 0; i < rows_apart; i++){
       memcpy(A_part[i], matrix_a[i], cols_apart * sizeof(double));
     }
@@ -302,7 +304,7 @@ int main(int argc, char *argv[]) {
 
   // Free up communicator
   MPI_Comm_free(&comm_2d);
-  //deallocate_matrix(matrix_c);
+  //deallocate_matrix(A_part);
   //deallocate_matrix(A_part);
   //deallocate_matrix(B_part);
   //deallocate_matrix(C_part);

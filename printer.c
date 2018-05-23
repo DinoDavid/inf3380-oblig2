@@ -1,9 +1,105 @@
+#include <stdarg.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "lib3380.h"
+struct matrix {
+        double **data;
+        int rowsiz;
+        int colsiz;
+        int m;
+        int n;
+};
+
+struct partdat {
+        int *rowcnt;
+        int *colcnt;
+        int *rowdspl;
+        int *coldspl;
+};
+
+void
+die(char *msg, ...)
+{
+        va_list ap;
+
+        va_start(ap, msg);
+        vfprintf(stderr, msg, ap);
+        va_end(ap);
+
+        exit(EXIT_FAILURE);
+}
+
+void
+allocmat(int rowsiz, int colsiz, int m, int n, struct matrix *mat)
+{
+        int i;
+
+        /*
+         * TODO check m <= rowsiz etc
+         */
+
+        mat->rowsiz = rowsiz;
+        mat->colsiz = colsiz;
+        mat->m = m;
+        mat->n = n;
+
+        mat->data = malloc(rowsiz * sizeof(*mat->data));
+        *mat->data = malloc(rowsiz * colsiz * sizeof(**mat->data));
+        for (i = 0; i < rowsiz; i++)
+                *(mat->data + i) = (*mat->data) + i * colsiz;
+}
+
+void
+deallocmat(struct matrix *mat)
+{
+        mat->rowsiz = 0;
+        mat->colsiz = 0;
+        mat->m = 0;
+        mat->n = 0;
+        free(*mat->data);
+        free(mat->data);
+        mat->data = 0;
+}
+
+void
+readmat(char *file, struct matrix *mat)
+{
+        FILE *fp;
+        int rows;
+        int cols;
+
+        fp = fopen(file, "r");
+        if (!fp)
+                die("failed to open '%s' for reading\n", file);
+
+        fread(&rows, sizeof(rows), 1, fp);
+        fread(&cols, sizeof(cols), 1, fp);
+        allocmat(rows, cols, rows, cols, mat);
+        fread(*mat->data, sizeof(**mat->data), mat->m * mat->n, fp);
+
+        fclose(fp);
+}
+
+void
+calclens(int **lens, int **displs, int procswid, int fulllen)
+{
+        int i;
+        int minlen;
+        int remain;
+
+        *lens = malloc(procswid * sizeof(*lens));
+        *displs = malloc((procswid + 1) * sizeof(*displs));
+
+        minlen = fulllen / procswid;
+        remain = fulllen % procswid;
+        (*displs)[0] = 0;
+        for (i = 0; i < procswid; i++) {
+                (*lens)[i] = minlen + (i < remain);
+                (*displs)[i + 1] = (*displs)[i] + (*lens)[i];
+        }
+}
 
 void
 printmat(struct matrix *A)
