@@ -44,11 +44,19 @@ void deallocate_matrix(double** matrix) {
   free(matrix);
 }
 
+/*
+void matrix_0(double** matrix_c, int rows_a, int cols_b){
+  for (int i = 0; i < rows_a; i++)
+    for (int j = 0; j < cols_b; j++)
+      matrix_c[i][j] = 0;
+}
+*/
+
 /* This matrix performs a serial matrix-matrix multiplication c = a * b. */
 void matrix_mult(double** matrix_a, double** matrix_b, double** matrix_c, int rows_a, int cols_a, int cols_b) {
   for (int i = 0; i < rows_a; i++) {
     for (int j = 0; j < cols_b; j++) {
-      matrix_c[i][j] = 0;
+      //matrix_c[i][j] = 0;
       for (int k = 0; k < cols_a; k++) {
         matrix_c[i][j] += matrix_a[i][k] * matrix_b[k][j];
       }
@@ -231,8 +239,8 @@ int main(int argc, char *argv[]) {
     MPI_Cart_coords(comm_2d, rank2d, 2, mycoords);
 
   //Compute ranks of the up and left shifts
-    MPI_Cart_shift(comm_2d, 0, -1, &rightrank, &leftrank);
-    MPI_Cart_shift(comm_2d, 1, -1, &downrank, &uprank);
+    MPI_Cart_shift(comm_2d, 1, -1, &rightrank, &leftrank);
+    MPI_Cart_shift(comm_2d, 0, -1, &downrank, &uprank);
 
   	//Perform the initial matrix alignment. First for A and then for B
     MPI_Cart_shift(comm_2d, 1, -mycoords[0], &shiftsource, &shiftdest);
@@ -247,6 +255,7 @@ int main(int argc, char *argv[]) {
 
   	// Get into the main computation loop
     for (int i = 0; i < dims[0]; i++) {
+      //matrix_0(C_part, rows_apart, cols_apart);
       matrix_mult(A_part, B_part, C_part, rows_apart, cols_apart, cols_bpart);
 
 	    // Shift matrix a left by one
