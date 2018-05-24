@@ -54,7 +54,7 @@ void matrix_0(double** matrix_c, int rows_a, int cols_b){
 
 /* This matrix performs a serial matrix-matrix multiplication c = a * b. */
 void matrix_mult(double** matrix_a, double** matrix_b, double** matrix_c, int rows_a, int cols_a, int cols_b) {
-#pragma omp parallel for num_threads(16)
+#pragma omp parallel for num_threads(4)
   for (int i = 0; i < rows_a; i++) {
     for (int j = 0; j < cols_b; j++) {
       //matrix_c[i][j] = 0;
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
   int mycoords[2];
   int uprank, downrank, leftrank, rightrank;
   int shiftsource, shiftdest;
-  int A_part_m_max, A_part_n_max, B_part_m_max, B_part_n_max;
+  int A_part_m_max, A_part_n_max, B_part_m_max, B_part_n_max, C_part_m_max, C_part_n_max;
 
   //mpi begin
   MPI_Init (&argc, &argv);
@@ -171,6 +171,8 @@ int main(int argc, char *argv[]) {
   A_part_n_max = cols_a / num_procs_sqrt + 1;
   B_part_m_max = rows_b / num_procs_sqrt + 1;
   B_part_n_max = cols_b / num_procs_sqrt + 1;
+  C_part_m_max = rows_c / num_procs_sqrt + !!(cols_c % num_procs_sqrt);
+  C_part_n_max = cols_c / num_procs_sqrt + !!(cols_c % num_procs_sqrt);
 
   //find partion sizes
   rows_apart = rows_a / num_procs_sqrt + (rankrows < rows_a % num_procs_sqrt);
@@ -183,11 +185,12 @@ int main(int argc, char *argv[]) {
   //allocate partitions
   allocate_matrix(&A_part, A_part_m_max, A_part_n_max);
   allocate_matrix(&B_part, B_part_m_max, B_part_n_max);
-  allocate_matrix(&C_part, rows_cpart+1, cols_cpart+1);
+  allocate_matrix(&C_part, C_part_m_max, C_part_n_max);
+
+  printf("%d %d\n", C_part_m_max, C_part_n_max);
 
   //distribute partitions
   if (my_rank == 0) {
-    #pragma omp parallel for num_threads(16)
     for (int i = 0; i < rows_apart; i++){
       memcpy(A_part[i], matrix_a[i], cols_apart * sizeof(double));
     }
@@ -204,12 +207,12 @@ int main(int argc, char *argv[]) {
       int moff, noff;
       moff = row_displ_a[i / num_procs_sqrt];
       noff = col_displ_a[i % num_procs_sqrt];
-      for (int j = 0; j < row_cnt_a[i / num_procs_sqrt]; j++) {
+      for (int j = 0; j < Am; j++) {
         MPI_Send(&(matrix_a[j + moff][noff]), An, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
       }
       moff = row_displ_b[i / num_procs_sqrt];
       noff = col_displ_b[i % num_procs_sqrt];
-      for (int j = 0; j <  row_cnt_b[i / num_procs_sqrt]; j++){
+      for (int j = 0; j <  Bm; j++){
         MPI_Send(&(matrix_b[j + moff][noff]), Bn, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
       }
     }
@@ -270,7 +273,15 @@ int main(int argc, char *argv[]) {
     MPI_Sendrecv_replace(&rows_bpart, 1, MPI_INT, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
     MPI_Sendrecv_replace(&cols_bpart, 1, MPI_INT, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
   }
-
+/*
+  if (my_rank == 2){
+    for (int i = 0; i < rows_cpart; i++){
+      for (int j = 0; j < cols_cpart; j++){
+        printf("%f\n", C_part[i][j]);
+      }
+    }
+  }
+  */
   //gather
   if (my_rank == 0) {
     for (int i = 0; i < rows_cpart; i++){
@@ -295,6 +306,8 @@ int main(int argc, char *argv[]) {
       MPI_Send(C_part[j], cols_cpart, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     }
   }
+
+
 
   //save result
   if (my_rank == 0){
