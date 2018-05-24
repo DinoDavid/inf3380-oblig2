@@ -167,10 +167,10 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(comm_cols, &rankcols);
 
   //calculate matrix max
-  A_part_m_max = rows_a / num_procs_sqrt + 1;
-  A_part_n_max = cols_a / num_procs_sqrt + 1;
-  B_part_m_max = rows_b / num_procs_sqrt + 1;
-  B_part_n_max = cols_b / num_procs_sqrt + 1;
+  A_part_m_max = rows_a / num_procs_sqrt + !!(cols_c % num_procs_sqrt);
+  A_part_n_max = cols_a / num_procs_sqrt + !!(cols_c % num_procs_sqrt);
+  B_part_m_max = rows_b / num_procs_sqrt + !!(cols_c % num_procs_sqrt);
+  B_part_n_max = cols_b / num_procs_sqrt + !!(cols_c % num_procs_sqrt);
   C_part_m_max = rows_c / num_procs_sqrt + !!(cols_c % num_procs_sqrt);
   C_part_n_max = cols_c / num_procs_sqrt + !!(cols_c % num_procs_sqrt);
 
