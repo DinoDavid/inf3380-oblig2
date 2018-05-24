@@ -44,13 +44,6 @@ void deallocate_matrix(double*** matrix) {
   free(matrix);
 }
 */
-/*
-void matrix_0(double** matrix_c, int rows_a, int cols_b){
-  for (int i = 0; i < rows_a; i++)
-    for (int j = 0; j < cols_b; j++)
-      matrix_c[i][j] = 0;
-}
-*/
 
 /* This matrix performs a serial matrix-matrix multiplication c = a * b. */
 void matrix_mult(double** matrix_a, double** matrix_b, double** matrix_c, int rows_a, int cols_a, int cols_b) {
@@ -187,8 +180,6 @@ int main(int argc, char *argv[]) {
   allocate_matrix(&B_part, B_part_m_max, B_part_n_max);
   allocate_matrix(&C_part, C_part_m_max, C_part_n_max);
 
-  printf("%d %d\n", C_part_m_max, C_part_n_max);
-
   //distribute partitions
   if (my_rank == 0) {
     for (int i = 0; i < rows_apart; i++){
@@ -249,31 +240,34 @@ int main(int argc, char *argv[]) {
 
   //Perform the initial matrix alignment. First for A and then for B
   MPI_Cart_shift(comm_2d, 1, -mycoords[0], &shiftsource, &shiftdest);
-  MPI_Sendrecv_replace(A_part[0], A_part_m_max * A_part_n_max, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
   MPI_Sendrecv_replace(&rows_apart, 1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
   MPI_Sendrecv_replace(&cols_apart,1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
+  for (int i = 0; i < A_part_m_max; i++)
+    MPI_Sendrecv_replace(A_part[i], A_part_n_max, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
 
   MPI_Cart_shift(comm_2d, 0, -mycoords[1], &shiftsource, &shiftdest);
-  MPI_Sendrecv_replace(B_part[0], B_part_m_max * B_part_n_max, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
   MPI_Sendrecv_replace(&rows_bpart, 1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
   MPI_Sendrecv_replace(&cols_bpart, 1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
+  for (int i = 0; i < B_part_m_max; i++)
+    MPI_Sendrecv_replace(B_part[i], B_part_n_max, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
 
   // Get into the main computation loop
   for (int i = 0; i < dims[0]; i++) {
-    //matrix_0(C_part, rows_apart, cols_apart);
     matrix_mult(A_part, B_part, C_part, rows_apart, cols_apart, cols_bpart);
 
     // Shift matrix a left by one
-    MPI_Sendrecv_replace(A_part[0], A_part_m_max * A_part_n_max, MPI_DOUBLE, leftrank, 1, rightrank, 1, comm_2d, MPI_STATUS_IGNORE);
     MPI_Sendrecv_replace(&rows_apart, 1, MPI_INT, leftrank, 1, rightrank, 1, comm_2d, MPI_STATUS_IGNORE);
     MPI_Sendrecv_replace(&cols_apart, 1, MPI_INT, leftrank, 1, rightrank, 1, comm_2d, MPI_STATUS_IGNORE);
+    for (int j = 0; j < A_part_m_max; j++)
+      MPI_Sendrecv_replace(A_part[j], A_part_n_max, MPI_DOUBLE, leftrank, 1, rightrank, 1, comm_2d, MPI_STATUS_IGNORE);
 
 	  // Shift matrix b up by one
-    MPI_Sendrecv_replace(B_part[0], B_part_m_max * B_part_n_max, MPI_DOUBLE, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
     MPI_Sendrecv_replace(&rows_bpart, 1, MPI_INT, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
     MPI_Sendrecv_replace(&cols_bpart, 1, MPI_INT, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
+    for (int j = 0; j < B_part_m_max; j++)
+      MPI_Sendrecv_replace(B_part[j], B_part_n_max, MPI_DOUBLE, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
   }
-/*
+
   if (my_rank == 2){
     for (int i = 0; i < rows_cpart; i++){
       for (int j = 0; j < cols_cpart; j++){
@@ -281,7 +275,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  */
+
   //gather
   if (my_rank == 0) {
     for (int i = 0; i < rows_cpart; i++){
