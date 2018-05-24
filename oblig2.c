@@ -202,14 +202,14 @@ int main(int argc, char *argv[]) {
       MPI_Recv(&Bn, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
       int moff, noff;
+      moff = row_displ_a[i / num_procs_sqrt];
+      noff = col_displ_a[i % num_procs_sqrt];
       for (int j = 0; j < row_cnt_a[i / num_procs_sqrt]; j++) {
-        moff = row_displ_a[i / num_procs_sqrt];
-        noff = col_displ_a[i % num_procs_sqrt];
         MPI_Send(&(matrix_a[j + moff][noff]), An, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
       }
+      moff = row_displ_b[i / num_procs_sqrt];
+      noff = col_displ_b[i % num_procs_sqrt];
       for (int j = 0; j <  row_cnt_b[i / num_procs_sqrt]; j++){
-        moff = row_displ_b[i / num_procs_sqrt];
-        noff = col_displ_b[i % num_procs_sqrt];
         MPI_Send(&(matrix_b[j + moff][noff]), Bn, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
       }
     }
@@ -231,45 +231,45 @@ int main(int argc, char *argv[]) {
   //Cannon_mult
 
 	// Set up the Cartesian topology
-    dims[0] = dims[1] = sqrt(num_procs);
+  dims[0] = dims[1] = sqrt(num_procs);
 
 	// Set the periods for wraparound connections, 1 == true
-    periods[0] = periods[1] = 1;
+  periods[0] = periods[1] = 1;
 
 	// Get the rank and coordinates with respect to the new topology
-    MPI_Comm_rank(comm_2d, &rank2d);
-    MPI_Cart_coords(comm_2d, rank2d, 2, mycoords);
+  MPI_Comm_rank(comm_2d, &rank2d);
+  MPI_Cart_coords(comm_2d, rank2d, 2, mycoords);
 
   //Compute ranks of the up and left shifts
-    MPI_Cart_shift(comm_2d, 1, -1, &rightrank, &leftrank);
-    MPI_Cart_shift(comm_2d, 0, -1, &downrank, &uprank);
+  MPI_Cart_shift(comm_2d, 1, -1, &rightrank, &leftrank);
+  MPI_Cart_shift(comm_2d, 0, -1, &downrank, &uprank);
 
-  	//Perform the initial matrix alignment. First for A and then for B
-    MPI_Cart_shift(comm_2d, 1, -mycoords[0], &shiftsource, &shiftdest);
-    MPI_Sendrecv_replace(A_part[0], A_part_m_max * A_part_n_max, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv_replace(&rows_apart, 1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv_replace(&cols_apart,1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
+  //Perform the initial matrix alignment. First for A and then for B
+  MPI_Cart_shift(comm_2d, 1, -mycoords[0], &shiftsource, &shiftdest);
+  MPI_Sendrecv_replace(A_part[0], A_part_m_max * A_part_n_max, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
+  MPI_Sendrecv_replace(&rows_apart, 1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
+  MPI_Sendrecv_replace(&cols_apart,1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
 
-    MPI_Cart_shift(comm_2d, 0, -mycoords[1], &shiftsource, &shiftdest);
-    MPI_Sendrecv_replace(B_part[0], B_part_m_max * B_part_n_max, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv_replace(&rows_bpart, 1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
-    MPI_Sendrecv_replace(&cols_bpart, 1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
+  MPI_Cart_shift(comm_2d, 0, -mycoords[1], &shiftsource, &shiftdest);
+  MPI_Sendrecv_replace(B_part[0], B_part_m_max * B_part_n_max, MPI_DOUBLE, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
+  MPI_Sendrecv_replace(&rows_bpart, 1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
+  MPI_Sendrecv_replace(&cols_bpart, 1, MPI_INT, shiftdest, 1, shiftsource, 1, comm_2d, MPI_STATUS_IGNORE);
 
-  	// Get into the main computation loop
-    for (int i = 0; i < dims[0]; i++) {
-      //matrix_0(C_part, rows_apart, cols_apart);
-      matrix_mult(A_part, B_part, C_part, rows_apart, cols_apart, cols_bpart);
+  // Get into the main computation loop
+  for (int i = 0; i < dims[0]; i++) {
+    //matrix_0(C_part, rows_apart, cols_apart);
+    matrix_mult(A_part, B_part, C_part, rows_apart, cols_apart, cols_bpart);
 
-	    // Shift matrix a left by one
-      MPI_Sendrecv_replace(A_part[0], A_part_m_max * A_part_n_max, MPI_DOUBLE, leftrank, 1, rightrank, 1, comm_2d, MPI_STATUS_IGNORE);
-      MPI_Sendrecv_replace(&rows_apart, 1, MPI_INT, leftrank, 1, rightrank, 1, comm_2d, MPI_STATUS_IGNORE);
-      MPI_Sendrecv_replace(&cols_apart, 1, MPI_INT, leftrank, 1, rightrank, 1, comm_2d, MPI_STATUS_IGNORE);
+    // Shift matrix a left by one
+    MPI_Sendrecv_replace(A_part[0], A_part_m_max * A_part_n_max, MPI_DOUBLE, leftrank, 1, rightrank, 1, comm_2d, MPI_STATUS_IGNORE);
+    MPI_Sendrecv_replace(&rows_apart, 1, MPI_INT, leftrank, 1, rightrank, 1, comm_2d, MPI_STATUS_IGNORE);
+    MPI_Sendrecv_replace(&cols_apart, 1, MPI_INT, leftrank, 1, rightrank, 1, comm_2d, MPI_STATUS_IGNORE);
 
-	    // Shift matrix b up by one
-      MPI_Sendrecv_replace(B_part[0], B_part_m_max * B_part_n_max, MPI_DOUBLE, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
-      MPI_Sendrecv_replace(&rows_bpart, 1, MPI_INT, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
-      MPI_Sendrecv_replace(&cols_bpart, 1, MPI_INT, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
-    }
+	  // Shift matrix b up by one
+    MPI_Sendrecv_replace(B_part[0], B_part_m_max * B_part_n_max, MPI_DOUBLE, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
+    MPI_Sendrecv_replace(&rows_bpart, 1, MPI_INT, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
+    MPI_Sendrecv_replace(&cols_bpart, 1, MPI_INT, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
+  }
 
   //gather
   if (my_rank == 0) {
@@ -281,10 +281,9 @@ int main(int argc, char *argv[]) {
       int Cm, Cn;
       MPI_Recv(&Cm, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       MPI_Recv(&Cn, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      int moff, noff;
+      int moff = row_displ_c[i / num_procs_sqrt];
+      int noff = col_displ_c[i % num_procs_sqrt];
       for (int j = 0; j < row_cnt_c[i / num_procs_sqrt]; j++) {
-        moff = row_displ_c[i / num_procs_sqrt];
-        noff = col_displ_c[i % num_procs_sqrt];
         MPI_Recv(&(matrix_c[j + moff][noff]), Cn, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
     }
