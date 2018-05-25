@@ -46,10 +46,9 @@ void deallocate_matrix(double** matrix) {
 
 // This matrix performs a serial matrix-matrix multiplication c = a * b.
 void matrix_mult(double** matrix_a, double** matrix_b, double** matrix_c, int rows_a, int cols_a, int cols_b) {
-#pragma omp parallel for num_threads(4)
+#pragma omp parallel for num_threads(8)
   for (int i = 0; i < rows_a; i++) {
     for (int j = 0; j < cols_b; j++) {
-      //matrix_c[i][j] = 0;
       for (int k = 0; k < cols_a; k++) {
         matrix_c[i][j] += matrix_a[i][k] * matrix_b[k][j];
       }
