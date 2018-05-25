@@ -38,14 +38,13 @@ void allocate_matrix(double*** matrix, int m, int n) {
     (*matrix)[i] = (*matrix)[i-1] + n;
   }
 }
-/*
-void deallocate_matrix(double*** matrix) {
+
+void deallocate_matrix(double** matrix) {
   free(matrix[0]);
   free(matrix);
 }
-*/
 
-/* This matrix performs a serial matrix-matrix multiplication c = a * b. */
+// This matrix performs a serial matrix-matrix multiplication c = a * b.
 void matrix_mult(double** matrix_a, double** matrix_b, double** matrix_c, int rows_a, int cols_a, int cols_b) {
 #pragma omp parallel for num_threads(4)
   for (int i = 0; i < rows_a; i++) {
@@ -267,7 +266,7 @@ int main(int argc, char *argv[]) {
     for (int j = 0; j < B_part_m_max; j++)
       MPI_Sendrecv_replace(B_part[j], B_part_n_max, MPI_DOUBLE, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
   }
-
+/*
   if (my_rank == 2){
     for (int i = 0; i < rows_cpart; i++){
       for (int j = 0; j < cols_cpart; j++){
@@ -275,6 +274,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+*/
 
   //gather
   if (my_rank == 0) {
@@ -301,19 +301,18 @@ int main(int argc, char *argv[]) {
     }
   }
 
-
-
   //save result
   if (my_rank == 0){
     write_matrix_binaryformat(argv[3], matrix_c, rows_c, cols_c);
   }
 
   // Free up communicator
+  if (my_rank == 0)
+    deallocate_matrix(matrix_c);
+  deallocate_matrix(A_part);
+  deallocate_matrix(B_part);
+  deallocate_matrix(C_part);
   MPI_Comm_free(&comm_2d);
-  //deallocate_matrix(A_part);
-  //deallocate_matrix(A_part);
-  //deallocate_matrix(B_part);
-  //deallocate_matrix(C_part);
   free(row_cnt_a);
   free(row_cnt_b);
   free(row_cnt_c);
