@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
       row_displ_b[i+1] = row_displ_b[i] + row_cnt_b[i];
       row_displ_c[i+1] = row_displ_c[i] + row_cnt_c[i];
       col_displ_a[i+1] = col_displ_a[i] + col_cnt_a[i];
-      col_displ_a[i+1] = col_displ_a[i] + col_cnt_a[i];
+      col_displ_b[i+1] = col_displ_b[i] + col_cnt_b[i];
       col_displ_c[i+1] = col_displ_c[i] + col_cnt_c[i];
     }
   }
@@ -266,15 +266,6 @@ int main(int argc, char *argv[]) {
     for (int j = 0; j < B_part_m_max; j++)
       MPI_Sendrecv_replace(B_part[j], B_part_n_max, MPI_DOUBLE, uprank, 1, downrank, 1, comm_2d, MPI_STATUS_IGNORE);
   }
-/*
-  if (my_rank == 2){
-    for (int i = 0; i < rows_cpart; i++){
-      for (int j = 0; j < cols_cpart; j++){
-        printf("%f\n", C_part[i][j]);
-      }
-    }
-  }
-*/
 
   //gather
   if (my_rank == 0) {
